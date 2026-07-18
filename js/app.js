@@ -127,7 +127,112 @@ function renderSelectorMes(selectId, onChange) {
 }
 
 // ============================================================
-//  PESTAÑA: REGISTRO
+//  DASHBOARD (inicio): progreso, cambios y alertas
+// ============================================================
+function cambioPct(cur, prev) {
+  if (prev === 0) return cur === 0 ? 0 : 100;
+  return Math.round(((cur - prev) / prev) * 100);
+}
+function mesPrevio(mes) {
+  const idx = state.meses.findIndex(m => m.id === mes.id);
+  return idx > 0 ? state.meses[idx - 1] : null;
+}
+
+const RECOMENDACIONES = {
+  luz:    'Revisa focos encendidos y aparatos en standby. Mira los tips de ahorro de luz.',
+  agua:   'Puede haber una fuga o mayor uso. Revisa caños, la ducha y el inodoro.',
+  gas:    'Mayor uso de cocina o terma. Verifica que no queden hornillas prendidas.',
+  luz_sb: 'Subió la luz de San Bartolo. Verifica el consumo de esa casa.',
+  agua_sb:'Subió el agua de San Bartolo. Revisa posibles fugas.',
+  gas_sb: 'Subió el gas de San Bartolo.',
+};
+
+function generarAlertas(mes, prev) {
+  if (!prev) {
+    return [{ tipo: 'info', icono: '📋', titulo: 'Primer mes registrado',
+      texto: 'Desde el próximo mes verás aquí las comparaciones y alertas de consumo.' }];
+  }
+  const out = [];
+  SERVICIOS_VARIABLES.forEach(s => {
+    const cur = (mes.vars[s.id] && mes.vars[s.id].total) || 0;
+    const pv = (prev.vars[s.id] && prev.vars[s.id].total) || 0;
+    if (cur === 0 && pv === 0) return;
+    const pct = cambioPct(cur, pv);
+    if (pct >= 8) {
+      out.push({ tipo: 'up', icono: s.icono, prioridad: pct,
+        titulo: `${s.nombre} subió ${pct}%`,
+        texto: `Pasó de ${S(pv)} a ${S(cur)}. ${RECOMENDACIONES[s.id] || 'Revisa el consumo de este servicio.'}` });
+    } else if (pct <= -8) {
+      out.push({ tipo: 'down', icono: s.icono, prioridad: -pct,
+        titulo: `${s.nombre} bajó ${Math.abs(pct)}%`,
+        texto: `Bajó de ${S(pv)} a ${S(cur)}. ¡Buen trabajo! 👏` });
+    }
+  });
+  // Primero las subidas (más importantes), luego las bajadas
+  out.sort((a, b) => (a.tipo === b.tipo ? (b.prioridad || 0) - (a.prioridad || 0) : a.tipo === 'up' ? -1 : 1));
+  if (out.length === 0) {
+    out.push({ tipo: 'info', icono: '✅', titulo: 'Consumo estable',
+      texto: 'No hay cambios importantes respecto al mes anterior.' });
+  }
+  return out;
+}
+
+function renderDashboardHTML() {
+  const mes = mesActual();
+  const prev = mesPrevio(mes);
+  const desg = desgloseMes(mes, state.config);
+  const totalCasa = desg.reduce((a, d) => a + d.total, 0);
+  const prevTotalCasa = prev ? desgloseMes(prev, state.config).reduce((a, d) => a + d.total, 0) : 0;
+
+  const metrica = (icono, label, cur, pv, color, i) => {
+    const pct = prev ? cambioPct(cur, pv) : null;
+    const cls = pct === null ? 'flat' : pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
+    const arrow = pct === null ? '' : pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+    const delta = pct === null ? '<span class="metric-delta flat">nuevo</span>'
+      : `<span class="metric-delta ${cls}">${arrow} ${Math.abs(pct)}%</span>`;
+    return `<div class="metric" style="--c:${color};--i:${i}">
+      <div class="metric-ico">${icono}</div>
+      <div class="metric-body">
+        <span class="metric-label">${label}</span>
+        <span class="metric-val">${S(cur)}</span>
+        ${delta}
+      </div></div>`;
+  };
+
+  const g = id => (mes.vars[id] && mes.vars[id].total) || 0;
+  const gp = id => prev ? ((prev.vars[id] && prev.vars[id].total) || 0) : 0;
+
+  const metricas = [
+    metrica('🏠', 'Total de la casa', totalCasa, prevTotalCasa, '#0ea5e9', 0),
+    metrica('💡', 'Luz (casa)', g('luz'), gp('luz'), '#f59e0b', 1),
+    metrica('💧', 'Agua (casa)', g('agua'), gp('agua'), '#2563eb', 2),
+    metrica('🔥', 'Gas Cálidda', g('gas'), gp('gas'), '#dc2626', 3),
+  ].join('');
+
+  const alertas = generarAlertas(mes, prev);
+  const alertasHTML = alertas.map((a, i) => `
+    <div class="alerta alerta-${a.tipo}" style="--i:${i}">
+      <div class="alerta-ico">${a.icono}</div>
+      <div class="alerta-txt"><strong>${a.titulo}</strong><span>${a.texto}</span></div>
+      ${a.tipo === 'up' ? '<button class="alerta-link" data-goto="tips">Ver tips →</button>' : ''}
+    </div>`).join('');
+
+  return `
+    <div class="dashboard">
+      <div class="dash-head">
+        <h2>📊 Resumen — ${mes.etiqueta}</h2>
+        ${prev ? `<span class="dash-sub">Comparado con ${prev.etiqueta}</span>` : ''}
+      </div>
+      <div class="metrics">${metricas}</div>
+      <div class="alertas-wrap">
+        <h3 class="alertas-title">💬 Sugerencias y alertas</h3>
+        <div class="alertas">${alertasHTML}</div>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+//  PESTAÑA: REGISTRO (inicio)
 // ============================================================
 function renderRegistro() {
   const mes = mesActual();
@@ -150,6 +255,8 @@ function renderRegistro() {
   }).join('');
 
   cont.innerHTML = `
+    ${renderDashboardHTML()}
+
     <div class="hero-tips">
       ${TIP_CARDS.map((c, i) => `
         <button class="tip-hero" data-goto="${c.tab}" style="--grad:${c.grad}">
@@ -217,7 +324,7 @@ function renderRegistro() {
     });
   });
 
-  cont.querySelectorAll('.tip-hero').forEach(b => {
+  cont.querySelectorAll('.tip-hero, .alerta-link').forEach(b => {
     b.addEventListener('click', () => activarTab(b.dataset.goto));
   });
 
@@ -530,12 +637,74 @@ function renderTips() {
 // ============================================================
 //  Datos: exportar / importar / reset
 // ============================================================
-function exportarJSON() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+function descargar(contenido, nombre, mime) {
+  const blob = new Blob([contenido], { type: mime });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'casa-servicios-datos.json';
+  a.download = nombre;
   a.click();
+}
+
+function exportarJSON() {
+  descargar(JSON.stringify(state, null, 2), 'casa-servicios-datos.json', 'application/json');
+}
+
+// Exporta el histórico a Excel (.xls que Excel/LibreOffice abren con formato)
+function exportarExcel() {
+  const meses = state.meses;
+  const num = n => Math.round(n); // Excel interpreta números sin "S/"
+
+  // Tabla 1: totales por hermano
+  const cab1 = `<tr class="hdr">${['Mes', ...PERSONAS.map(p => p.nombre), 'Total casa']
+    .map(h => `<th>${h}</th>`).join('')}</tr>`;
+  let f1 = '';
+  meses.forEach(m => {
+    const desg = desgloseMes(m, state.config);
+    const tot = {}; desg.forEach(d => tot[d.personaId] = d.total);
+    const totalMes = desg.reduce((a, d) => a + d.total, 0);
+    f1 += `<tr><td class="mes">${m.etiqueta}</td>${PERSONAS.map(p => `<td>${num(tot[p.id] || 0)}</td>`).join('')}<td class="tot">${num(totalMes)}</td></tr>`;
+  });
+
+  // Tabla 2: consumo variable (total de recibo) por mes
+  const cab2 = `<tr class="hdr">${['Mes', ...SERVICIOS_VARIABLES.map(s => s.nombre)]
+    .map(h => `<th>${h}</th>`).join('')}</tr>`;
+  let f2 = '';
+  meses.forEach(m => {
+    f2 += `<tr><td class="mes">${m.etiqueta}</td>${SERVICIOS_VARIABLES.map(s => {
+      const t = m.vars[s.id] && m.vars[s.id].total;
+      return `<td>${t ? num(t) : ''}</td>`;
+    }).join('')}</tr>`;
+  });
+
+  const estilos = `
+    table{border-collapse:collapse;font-family:Calibri,Arial;margin-bottom:24px}
+    th,td{border:1px solid #b7c3d0;padding:6px 10px;text-align:right}
+    td.mes{text-align:left;font-weight:bold}
+    tr.hdr th{background:#0ea5e9;color:#fff;text-align:center}
+    td.tot{font-weight:bold;background:#e0f2fe}
+    h2{font-family:Calibri,Arial;color:#0369a1}`;
+
+  const html =
+`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><style>${estilos}</style>
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Casa Servicios</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+</head>
+<body>
+<h2>Casa Servicios — Pagos por hermano (S/)</h2>
+<table>${cab1}${f1}</table>
+<h2>Consumo variable por mes (S/)</h2>
+<table>${cab2}${f2}</table>
+</body></html>`;
+
+  descargar('﻿' + html, 'casa-servicios-historico.xls', 'application/vnd.ms-excel');
+}
+
+// Exporta los recibos a PDF (abre el diálogo de impresión en la hoja de recibos)
+function exportarPDF() {
+  activarTab('recibos');
+  setTimeout(() => window.print(), 350);
 }
 function importarJSON(file) {
   const reader = new FileReader();
@@ -592,9 +761,22 @@ function init() {
   initTabs();
   renderRegistro();
   renderTips();
-  document.getElementById('btn-export').onclick = exportarJSON;
   document.getElementById('btn-reset').onclick = resetDatos;
   document.getElementById('btn-publicar').onclick = publicarCifrado;
   document.getElementById('inp-import').onchange = e => { if (e.target.files[0]) importarJSON(e.target.files[0]); };
+  initExportMenu();
+}
+
+function initExportMenu() {
+  const dd = document.getElementById('export-dd');
+  const btn = document.getElementById('btn-export-menu');
+  const menu = document.getElementById('export-menu');
+  const acciones = { pdf: exportarPDF, excel: exportarExcel, json: exportarJSON };
+
+  btn.onclick = e => { e.stopPropagation(); dd.classList.toggle('open'); };
+  menu.querySelectorAll('button[data-exp]').forEach(b => {
+    b.onclick = () => { dd.classList.remove('open'); (acciones[b.dataset.exp] || (() => {}))(); };
+  });
+  document.addEventListener('click', () => dd.classList.remove('open'));
 }
 // El arranque lo dispara crypto.js -> arrancarApp(datos) tras validar la contraseña.

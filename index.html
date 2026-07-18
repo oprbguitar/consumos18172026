@@ -30,7 +30,14 @@
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost" id="btn-export" title="Descargar una copia de seguridad de los datos">⬇️ Exportar</button>
+      <div class="dropdown" id="export-dd">
+        <button class="btn btn-ghost" id="btn-export-menu" title="Exportar en PDF, Excel o copia de seguridad">⬇️ Exportar ▾</button>
+        <div class="dropdown-menu" id="export-menu">
+          <button data-exp="pdf"><span>🧾</span> Recibos en PDF</button>
+          <button data-exp="excel"><span>📊</span> Histórico en Excel</button>
+          <button data-exp="json"><span>💾</span> Copia de seguridad (JSON)</button>
+        </div>
+      </div>
       <label class="btn btn-ghost" title="Cargar datos desde un archivo">⬆️ Importar
         <input type="file" id="inp-import" accept="application/json" hidden>
       </label>
