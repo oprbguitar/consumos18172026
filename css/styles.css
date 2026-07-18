@@ -22,6 +22,11 @@ body {
   color: var(--ink);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+button, select, input, label.btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ---------- Topbar ---------- */
@@ -39,10 +44,14 @@ body {
 
 /* ---------- Tabs ---------- */
 .tabs {
-  display: flex; gap: 4px; padding: 10px 16px 0; flex-wrap: wrap;
+  display: flex; gap: 4px; padding: 10px 16px 0;
   background: var(--card); border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 20;
+  overflow-x: auto; white-space: nowrap;
+  scrollbar-width: none; -ms-overflow-style: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
+.tab-btn { flex-shrink: 0; }
 .tab-btn {
   border: none; background: transparent; cursor: pointer;
   padding: 11px 16px; font-size: 14.5px; font-weight: 600; color: var(--muted);
@@ -109,7 +118,8 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 
 /* ---------- Fijos ---------- */
 .grid-fijos { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
-.fijo-item { display: flex; flex-direction: column; gap: 4px; }
+.fijo-item { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fijo-item input { width: 100%; min-width: 0; }
 .fijo-item label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 
 /* ---------- Chips totales ---------- */
@@ -161,13 +171,6 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 /* ---------- Footer ---------- */
 .footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 720px) {
-  .two-col { grid-template-columns: 1fr; }
-  .recibos-grid { grid-template-columns: 1fr; }
-  .brand h1 { font-size: 18px; }
-}
-
 /* ---------- Menú (tabs) fijo al hacer scroll ---------- */
 .tabs { box-shadow: 0 2px 10px rgba(15,23,42,.06); }
 
@@ -177,10 +180,10 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
   background: #fff; border: 1px solid var(--border); border-radius: 12px;
   box-shadow: 0 12px 30px rgba(15,23,42,.18); padding: 6px; min-width: 220px;
-  opacity: 0; transform: translateY(-8px) scale(.98); pointer-events: none;
-  transition: opacity .16s ease, transform .16s ease;
+  opacity: 0; transform: translateY(-8px) scale(.98); pointer-events: none; visibility: hidden;
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
 }
-.dropdown.open .dropdown-menu { opacity: 1; transform: none; pointer-events: auto; }
+.dropdown.open .dropdown-menu { opacity: 1; transform: none; pointer-events: auto; visibility: visible; }
 .dropdown-menu button {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
   border: none; background: transparent; padding: 10px 12px; border-radius: 9px;
@@ -402,4 +405,60 @@ body.locked .footer { display: none !important; }
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   @page { size: A4 landscape; margin: 8mm; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .two-col { grid-template-columns: 1fr; }
+  .recibos-grid { grid-template-columns: 1fr; }
+
+  /* Topbar compacta */
+  .topbar { padding: 12px 14px; gap: 10px; }
+  .brand h1 { font-size: 17px; }
+  .brand p { font-size: 11px; }
+  .brand-ico { font-size: 28px; }
+  .topbar-actions { width: 100%; }
+  .topbar-actions .btn { padding: 8px 11px; font-size: 12.5px; }
+
+  /* Contenido */
+  .container { padding: 14px 10px 50px; }
+  .card { padding: 14px 14px; border-radius: 12px; }
+  .card-head h2 { font-size: 15.5px; }
+  .tab-btn { padding: 11px 12px; font-size: 13.5px; }
+
+  /* Resumen */
+  .metrics { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .metric { padding: 12px 12px; gap: 10px; border-radius: 13px; }
+  .metric-ico { width: 42px; height: 42px; font-size: 19px; }
+  .metric-val { font-size: 18px; }
+  .metric-prev { display: none; }
+  .dash-head h2 { font-size: 16.5px; }
+  .alerta { padding: 11px 12px; gap: 10px; }
+  .alerta-txt strong { font-size: 13.5px; }
+  .alerta-txt span { font-size: 12px; }
+  .side-big { font-size: 24px; }
+
+  /* Registro */
+  .tabla-registro input { width: 96px; }
+  .row-controls { width: 100%; }
+  .row-controls select { flex: 1; min-width: 0; }
+  .grid-fijos { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chips-total { grid-template-columns: 1fr 1fr; }
+  .chip-monto { font-size: 18px; }
+
+  /* Recibos */
+  .hoja-print { padding: 14px; }
+  .hoja-header h1 { font-size: 17px; }
+
+  /* Tips */
+  .tipd-grid { grid-template-columns: 1fr; }
+  .hero-tips { grid-template-columns: 1fr; }
+
+}
+
+@media (max-width: 360px) {
+  .metrics { grid-template-columns: 1fr; }
+  .grid-fijos { grid-template-columns: 1fr; }
+  .chips-total { grid-template-columns: 1fr; }
+  .donut-wrap { flex-direction: column; }
 }
