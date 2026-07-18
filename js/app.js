@@ -108,6 +108,7 @@ function initTabs() {
 function activarTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+  document.body.classList.toggle('resumen-activa', tab === 'resumen');
   if (tab === 'resumen') renderResumen();
   if (tab === 'registro') renderRegistro();
   if (tab === 'recibos') renderRecibos();
@@ -211,7 +212,7 @@ function miniBarChartHTML(mesSel) {
   const maxV = Math.max(1, ...totales);
   return `<div class="minibars">` + meses.map((m, i) => `
     <div class="minibar-col" title="${m.etiqueta}: ${S(totales[i])}">
-      <div class="minibar ${m.id === mesSel.id ? 'cur' : ''}" style="height:${Math.max(6, (totales[i] / maxV) * 100)}%"></div>
+      <div class="minibar ${m.id === mesSel.id ? 'cur' : ''}" style="height:${Math.max(6, (totales[i] / maxV) * 100)}%;--i:${i}"></div>
       <span class="minibar-lbl">${m.etiqueta.split(' ')[0].slice(0, 3)}</span>
     </div>`).join('') + `</div>`;
 }
@@ -289,7 +290,7 @@ function renderResumen() {
       <div class="metric-ico" style="--c:${color}">${icono}</div>
       <div class="metric-body">
         <span class="metric-label">${label}</span>
-        <span class="metric-val">${S(cur)}</span>
+        <span class="metric-val" data-count="${cur}">${S(cur)}</span>
         <span class="metric-foot">${delta}</span>
       </div></div>`;
   };
@@ -328,7 +329,7 @@ function renderResumen() {
     <div class="pp-row">
       <span class="pp-avatar" style="background:${colorPersona(d.personaId)}">${nombrePersona(d.personaId).charAt(0)}</span>
       <span class="pp-nombre">${nombrePersona(d.personaId)}</span>
-      <span class="pp-monto">${S(d.total)}</span>
+      <span class="pp-monto" data-count="${d.total}">${S(d.total)}</span>
     </div>`).join('');
 
   const pctTotal = prev ? cambioPct(totalCasa, prevTotalCasa) : null;
@@ -336,44 +337,41 @@ function renderResumen() {
     `<span class="metric-delta ${pctTotal > 0 ? 'up' : pctTotal < 0 ? 'down' : 'flat'}">${pctTotal > 0 ? '▲' : pctTotal < 0 ? '▼' : '—'} ${Math.abs(pctTotal)}% vs ${prev.etiqueta.split(' ')[0]}</span>`;
 
   cont.innerHTML = `
-    <div class="dash-head">
-      <h2>📊 Resumen — ${mes.etiqueta}</h2>
-      <select id="sel-mes-resumen"></select>
-    </div>
-    <div class="resumen-layout">
-      <div class="resumen-main">
-        <div class="metrics">${metricas}</div>
-        <div class="card alertas-card">
-          <h3 class="alertas-title">🔔 Sugerencias y alertas</h3>
-          <div class="alertas alertas-grid">${alertasHTML}</div>
-        </div>
-        <div class="hero-tips">${heroHTML}</div>
+    <div class="dash-fit">
+      <div class="dash-head">
+        <h2>📊 Resumen — ${mes.etiqueta}</h2>
+        <div class="dash-head-right">${badgeTotal}<select id="sel-mes-resumen"></select></div>
       </div>
-      <aside class="resumen-side">
-        <div class="card side-card">
-          <div class="side-head"><h3>Resumen del mes</h3>${badgeTotal}</div>
-          <span class="side-lbl">Total del mes</span>
-          <div class="side-big">${S(totalCasa)}</div>
-          <div class="side-sep"></div>
-          <span class="side-lbl">Promedio por persona</span>
-          <div class="side-mid">👥 ${S(totalCasa / PERSONAS.length)}</div>
+      <div class="metrics">${metricas}</div>
+      <div class="dash-grid">
+        <div class="dash-col col-a">
+          <div class="card side-card alertas-card">
+            <h3 class="alertas-title">🔔 Sugerencias y alertas</h3>
+            <div class="alertas alertas-grid">${alertasHTML}</div>
+          </div>
         </div>
-        <div class="card side-card">
-          <h3>Distribución del total</h3>
-          ${distribucion}
+        <div class="dash-col col-b">
+          <div class="card side-card">
+            <h3>Distribución del total</h3>
+            ${distribucion}
+          </div>
+          <div class="card side-card">
+            <h3>Evolución mensual (total)</h3>
+            ${miniBarChartHTML(mes)}
+          </div>
+          ${tarifasHTML()}
         </div>
-        <div class="card side-card">
-          <h3>Por persona</h3>
-          ${porPersona}
-          <div class="pp-total"><span>Total ${PERSONAS.length} personas</span><span>${S(totalCasa)}</span></div>
+        <div class="dash-col col-c">
+          <div class="card side-card">
+            <h3>Por persona</h3>
+            ${porPersona}
+            <div class="pp-total suave"><span>👥 Promedio</span><span>${S(totalCasa / PERSONAS.length)}</span></div>
+            <div class="pp-total"><span>Total ${PERSONAS.length} personas</span><span data-count="${totalCasa}">${S(totalCasa)}</span></div>
+          </div>
+          ${calculadoraHTML()}
         </div>
-        <div class="card side-card">
-          <h3>Evolución mensual (total)</h3>
-          ${miniBarChartHTML(mes)}
-        </div>
-        ${calculadoraHTML()}
-        ${tarifasHTML()}
-      </aside>
+      </div>
+      <div class="hero-tips">${heroHTML}</div>
     </div>`;
 
   renderSelectorMes('sel-mes-resumen', renderResumen);
@@ -390,6 +388,22 @@ function renderResumen() {
     });
   });
   calcularConsumo();
+  animarNumeros(cont);
+}
+
+// Cuenta los montos desde 0 hasta su valor (animación visible al abrir el resumen)
+function animarNumeros(root) {
+  root.querySelectorAll('[data-count]').forEach(el => {
+    const objetivo = parseFloat(el.dataset.count) || 0;
+    const dur = 750, t0 = performance.now();
+    const paso = t => {
+      const p = Math.min(1, (t - t0) / dur);
+      const suave = 1 - Math.pow(1 - p, 3); // ease-out
+      el.textContent = S(objetivo * suave);
+      if (p < 1) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+  });
 }
 
 // ============================================================
@@ -914,7 +928,7 @@ function init() {
     state.mesSeleccionado = state.meses[state.meses.length - 1].id;
   }
   initTabs();
-  renderResumen();
+  activarTab('resumen');
   renderTips();
   document.getElementById('btn-reset').onclick = resetDatos;
   document.getElementById('btn-publicar').onclick = publicarCifrado;
