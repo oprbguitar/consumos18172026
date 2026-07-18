@@ -344,32 +344,26 @@ function renderResumen() {
       </div>
       <div class="metrics">${metricas}</div>
       <div class="dash-grid">
-        <div class="dash-col col-a">
-          <div class="card side-card alertas-card">
-            <h3 class="alertas-title">🔔 Sugerencias y alertas</h3>
-            <div class="alertas alertas-grid">${alertasHTML}</div>
-          </div>
+        <div class="card side-card alertas-card">
+          <h3 class="alertas-title">🔔 Sugerencias y alertas</h3>
+          <div class="alertas alertas-grid">${alertasHTML}</div>
         </div>
-        <div class="dash-col col-b">
-          <div class="card side-card">
-            <h3>Distribución del total</h3>
-            ${distribucion}
-          </div>
-          <div class="card side-card">
-            <h3>Evolución mensual (total)</h3>
-            ${miniBarChartHTML(mes)}
-          </div>
-          ${tarifasHTML()}
+        <div class="card side-card distribucion-card">
+          <h3>Distribución del total</h3>
+          ${distribucion}
         </div>
-        <div class="dash-col col-c">
-          <div class="card side-card">
-            <h3>Por persona</h3>
-            ${porPersona}
-            <div class="pp-total suave"><span>👥 Promedio</span><span>${S(totalCasa / PERSONAS.length)}</span></div>
-            <div class="pp-total"><span>Total ${PERSONAS.length} personas</span><span data-count="${totalCasa}">${S(totalCasa)}</span></div>
-          </div>
-          ${calculadoraHTML()}
+        <div class="card side-card evolucion-card">
+          <h3>Evolución mensual (total)</h3>
+          ${miniBarChartHTML(mes)}
         </div>
+        <div class="card side-card personas-card">
+          <h3>Por persona</h3>
+          ${porPersona}
+          <div class="pp-total suave"><span>👥 Promedio</span><span>${S(totalCasa / PERSONAS.length)}</span></div>
+          <div class="pp-total"><span>Total ${PERSONAS.length} personas</span><span data-count="${totalCasa}">${S(totalCasa)}</span></div>
+        </div>
+        ${tarifasHTML()}
+        ${calculadoraHTML()}
       </div>
       <div class="hero-tips">${heroHTML}</div>
     </div>`;

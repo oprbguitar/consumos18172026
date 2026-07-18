@@ -488,58 +488,112 @@ body.locked .footer { display: none !important; }
 @keyframes brillo { 0%, 60%, 100% { left: -80px; } 30% { left: 110%; } }
 
 /* ============================================================
-   RESUMEN EN UNA SOLA PANTALLA (escritorio, sin scroll)
+   RESUMEN: tablero de una sola pantalla en escritorio
    ============================================================ */
-@media (min-width: 1000px) and (min-height: 560px) {
-  body.resumen-activa { overflow: hidden; }
+.dash-fit { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.dash-fit .dash-head { margin-bottom: 0; }
+.dash-fit .metrics { margin-bottom: 0; gap: 12px; }
+.dash-fit .dash-grid { gap: 12px; }
+.dash-fit .side-card { padding: 12px 14px; }
+.dash-fit .side-card h3 { font-size: 13.5px; margin-bottom: 7px; }
+
+/* Tips como accesos directos compactos */
+.dash-fit .hero-tips { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 0; }
+.dash-fit .tip-hero { padding: 10px 13px; border-radius: 13px; gap: 10px; }
+.dash-fit .tip-hero-ico { font-size: 22px; }
+.dash-fit .tip-hero-txt strong { font-size: 12.8px; }
+.dash-fit .tip-hero-txt span { display: none; }
+.dash-fit .tip-hero-arrow { font-size: 15px; }
+
+/* Compactación visual sin ocultar controles ni datos */
+.dash-fit .metric { padding: 10px 14px; }
+.dash-fit .metric-ico { width: 42px; height: 42px; font-size: 20px; }
+.dash-fit .metric-val { font-size: 20px; }
+.dash-fit .alertas-title { font-size: 13.5px; margin-bottom: 8px; }
+.dash-fit .alerta { padding: 9px 11px; gap: 9px; border-radius: 11px; }
+.dash-fit .alerta-ico { font-size: 20px; }
+.dash-fit .alerta-txt strong { font-size: 12.8px; }
+.dash-fit .alerta-txt span { font-size: 11.3px; line-height: 1.35; }
+.dash-fit .alerta-link { padding: 6px 9px; font-size: 11px; }
+.dash-fit .donut { width: 86px; height: 86px; }
+.dash-fit .donut-leg-row { font-size: 11.5px; gap: 6px; }
+.dash-fit .minibars { height: 72px; }
+.dash-fit .pp-row { padding: 4px 0; }
+.dash-fit .pp-avatar { width: 25px; height: 25px; font-size: 12px; }
+.dash-fit .pp-nombre, .dash-fit .pp-monto { font-size: 13px; }
+.dash-fit .pp-total { padding-top: 6px; font-size: 12.5px; }
+.dash-fit .pp-total.suave { padding-top: 6px; }
+.dash-fit .calc-card select, .dash-fit .calc-card input { padding: 6px 8px; margin-bottom: 0; font-size: 12px; }
+.dash-fit .calc-result { padding: 7px 10px; margin-top: 0; }
+.dash-fit .calc-kwh { font-size: 12px; }
+.dash-fit .calc-soles { font-size: 16px; }
+.dash-fit .tarifa-item { padding: 4px 0; }
+.dash-fit .tarifa-item strong { font-size: 11.5px; }
+.dash-fit .tarifa-item span:not(.tarifa-ico) { font-size: 10px; line-height: 1.25; }
+
+@media (min-width: 1000px) and (min-height: 680px) {
+  body.resumen-activa {
+    height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  body.resumen-activa .topbar { display: none; }
+  body.resumen-activa .tabs { position: relative; flex-shrink: 0; padding-top: 6px; }
   body.resumen-activa .footer { display: none; }
-  body.resumen-activa .container { padding-bottom: 8px; }
+  body.resumen-activa .container {
+    flex: 1 1 auto; min-height: 0; overflow: hidden; width: 100%; max-width: 1280px;
+    padding-top: 10px; padding-bottom: 10px;
+  }
+  body.resumen-activa #tab-resumen,
+  body.resumen-activa #resumen-content,
+  body.resumen-activa .dash-fit { height: 100%; }
 
-  .dash-fit { height: calc(100dvh - 172px); display: flex; flex-direction: column; gap: 12px; min-height: 380px; }
-  .dash-fit .dash-head { margin-bottom: 0; }
-  .dash-fit .metrics { margin-bottom: 0; gap: 12px; }
-  .dash-fit .metric { padding: 10px 14px; }
-  .dash-fit .metric-ico { width: 42px; height: 42px; font-size: 20px; }
-  .dash-fit .metric-val { font-size: 20px; }
+  .dash-fit { gap: 10px; }
+  .dash-fit .dash-head { flex: 0 0 auto; }
+  .dash-fit .dash-head h2 { font-size: 17px; }
+  .dash-fit .dash-head select { padding-block: 6px; font-size: 13px; }
+  .dash-fit .metrics { flex: 0 0 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .dash-fit .metric { min-width: 0; }
 
-  .dash-fit .dash-grid { flex: 1; min-height: 0; grid-template-columns: 1.45fr 1fr 1fr; gap: 12px; }
-  .dash-fit .dash-col { gap: 12px; overflow-y: auto; scrollbar-width: thin; }
-  .dash-fit .side-card { padding: 12px 14px; flex-shrink: 0; }
-  .dash-fit .side-card h3 { font-size: 13.5px; margin-bottom: 7px; }
+  .dash-fit .dash-grid {
+    flex: 1 1 auto; min-height: 0; overflow: hidden;
+    display: grid; gap: 10px; grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(132px, 1.15fr);
+    grid-template-areas:
+      "alerts alerts alerts alerts alerts alerts donut donut donut people people people"
+      "alerts alerts alerts alerts alerts alerts trend trend trend people people people"
+      "rates rates rates rates rates rates calc calc calc calc calc calc";
+  }
+  .dash-fit .alertas-card { grid-area: alerts; min-height: 0; }
+  .dash-fit .distribucion-card { grid-area: donut; min-height: 0; }
+  .dash-fit .evolucion-card { grid-area: trend; min-height: 0; }
+  .dash-fit .personas-card { grid-area: people; min-height: 0; }
+  .dash-fit .tarifas-card { grid-area: rates; min-height: 0; }
+  .dash-fit .calc-card { grid-area: calc; min-height: 0; }
 
-  .dash-fit .alertas-card { display: flex; flex-direction: column; min-height: 130px; }
-  .dash-fit .alertas-card .alertas { overflow-y: auto; scrollbar-width: thin; }
-  .dash-fit .alertas-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .dash-fit .alertas-title { font-size: 13.5px; margin-bottom: 8px; }
-  .dash-fit .alerta { padding: 9px 11px; gap: 9px; border-radius: 11px; }
-  .dash-fit .alerta-ico { font-size: 20px; }
-  .dash-fit .alerta-txt strong { font-size: 12.8px; }
-  .dash-fit .alerta-txt span { font-size: 11.3px; }
-  .dash-fit .alerta-link { padding: 6px 9px; font-size: 11px; }
+  .dash-fit .alertas-grid { height: calc(100% - 26px); grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dash-fit .alerta { min-height: 0; }
 
-  .dash-fit .hero-tips { grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 0; flex-shrink: 0; }
-  .dash-fit .tip-hero { padding: 10px 13px; border-radius: 13px; gap: 10px; }
-  .dash-fit .tip-hero-ico { font-size: 22px; }
-  .dash-fit .tip-hero-txt strong { font-size: 12.8px; }
-  .dash-fit .tip-hero-txt span { display: none; }
-  .dash-fit .tip-hero-arrow { font-size: 15px; }
+  .dash-fit .distribucion-card .donut-wrap { height: calc(100% - 22px); }
+  .dash-fit .evolucion-card .minibars { height: calc(100% - 22px); min-height: 54px; }
 
-  .dash-fit .donut { width: 90px; height: 90px; }
-  .dash-fit .donut-leg-row { font-size: 11.5px; gap: 6px; }
-  .dash-fit .minibars { height: 78px; }
-  .dash-fit .pp-row { padding: 4px 0; }
-  .dash-fit .pp-avatar { width: 25px; height: 25px; font-size: 12px; }
-  .dash-fit .pp-nombre { font-size: 13px; }
-  .dash-fit .pp-monto { font-size: 13px; }
-  .dash-fit .pp-total { padding-top: 6px; font-size: 12.5px; }
-  .dash-fit .pp-total.suave { padding-top: 6px; }
+  .dash-fit .tarifas-card {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto 1fr; column-gap: 12px; align-items: start;
+  }
+  .dash-fit .tarifas-card h3 { grid-column: 1 / -1; }
+  .dash-fit .tarifas-card .calc-nota { display: none; }
+  .dash-fit .tarifa-item { border-bottom: none; min-width: 0; }
 
-  .dash-fit .calc-card select, .dash-fit .calc-card input { padding: 6px 8px; margin-bottom: 6px; font-size: 13px; }
-  .dash-fit .calc-nota { margin-bottom: 6px; }
-  .dash-fit .calc-result { padding: 8px 11px; }
-  .dash-fit .calc-kwh { font-size: 12.5px; }
-  .dash-fit .calc-soles { font-size: 17px; }
-  .dash-fit .tarifa-item { padding: 5px 0; }
-  .dash-fit .tarifa-item strong { font-size: 12px; }
-  .dash-fit .tarifa-item span:not(.tarifa-ico) { font-size: 10.8px; }
+  .dash-fit .calc-card {
+    display: grid; grid-template-columns: 1.25fr 1.35fr 1fr;
+    grid-template-rows: auto auto 1fr; column-gap: 10px; align-items: start;
+  }
+  .dash-fit .calc-card h3 { grid-column: 1 / -1; }
+  .dash-fit .calc-card > .calc-nota { display: none; }
+  .dash-fit .calc-card > .calc-lbl { grid-column: 1; grid-row: 2; }
+  .dash-fit .calc-card > select { grid-column: 1; grid-row: 3; }
+  .dash-fit .calc-card > .calc-row { grid-column: 2; grid-row: 2 / 4; gap: 8px; }
+  .dash-fit .calc-card > .calc-result { grid-column: 3; grid-row: 2 / 4; align-self: stretch; }
+  .dash-fit .calc-det { display: none; }
+
+  .dash-fit .hero-tips { flex: 0 0 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
