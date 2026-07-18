@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casa Servicios — Pago de servicios entre hermanos</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="locked">
+  <!-- Pantalla de acceso (candado). Los datos están cifrados hasta ingresar la contraseña. -->
+  <div id="login-overlay" class="login-overlay">
+    <form id="login-form" class="login-card" autocomplete="on">
+      <div class="login-ico">🔒</div>
+      <h1>Casa Servicios</h1>
+      <p>Reparto de servicios de la familia.<br>Ingresa la contraseña para ver el detalle.</p>
+      <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" required>
+      <label class="login-remember"><input type="checkbox" id="login-remember" checked> Recordar en este dispositivo</label>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+      <div id="login-error" class="login-error"></div>
+      <p class="login-nota">🔐 Tus datos viajan cifrados. Solo quien tiene la contraseña puede verlos.</p>
+    </form>
+  </div>
+
+  <header class="topbar no-print">
+    <div class="brand">
+      <span class="brand-ico">🏠</span>
+      <div>
+        <h1>Casa Servicios</h1>
+        <p>Reparto transparente de gastos del hogar</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btn-export" title="Descargar una copia de seguridad de los datos">⬇️ Exportar</button>
+      <label class="btn btn-ghost" title="Cargar datos desde un archivo">⬆️ Importar
+        <input type="file" id="inp-import" accept="application/json" hidden>
+      </label>
+      <button class="btn btn-ghost" id="btn-publicar" title="Cifrar los datos actuales y descargar payload.js para actualizar el repositorio">🔐 Publicar</button>
+      <button class="btn btn-ghost danger" id="btn-reset" title="Volver a los datos originales">↺ Restaurar</button>
+    </div>
+  </header>
+
+  <nav class="tabs no-print">
+    <button class="tab-btn active" data-tab="registro">📝 Registro</button>
+    <button class="tab-btn" data-tab="recibos">🧾 Recibos / PDF</button>
+    <button class="tab-btn" data-tab="historico">📅 Histórico</button>
+    <button class="tab-btn" data-tab="graficos">📊 Gráficos</button>
+    <button class="tab-btn" data-tab="tips">💡 Tips</button>
+  </nav>
+
+  <main class="container">
+    <section id="tab-registro" class="tab-panel active"><div id="registro-content"></div></section>
+    <section id="tab-recibos" class="tab-panel"><div id="recibos-content"></div></section>
+    <section id="tab-historico" class="tab-panel"><div id="historico-content"></div></section>
+    <section id="tab-graficos" class="tab-panel"><div id="graficos-content"></div></section>
+    <section id="tab-tips" class="tab-panel"></section>
+  </main>
+
+  <footer class="footer no-print">
+    <p>Los datos que registras se guardan en <strong>este navegador</strong>. Usa «Exportar» para respaldarlos o compartirlos.</p>
+  </footer>
+
+  <script src="js/payload.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/crypto.js"></script>
+</body>
+</html>
