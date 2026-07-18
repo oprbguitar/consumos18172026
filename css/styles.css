@@ -158,14 +158,6 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .barra-fill { height: 100%; border-radius: 8px; transition: width .4s ease; }
 .barra-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* ---------- Tips ---------- */
-.tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-.tips-list { margin: 0; padding-left: 18px; }
-.tips-list li { margin-bottom: 10px; font-size: 14px; }
-.tip-luz { border-top: 4px solid #f59e0b; }
-.tip-agua { border-top: 4px solid #2563eb; }
-.tip-efi { border-top: 4px solid #16a34a; }
-
 /* ---------- Footer ---------- */
 .footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 20px; }
 
@@ -197,30 +189,116 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .dropdown-menu button:hover { background: var(--bg); }
 .dropdown-menu button span { font-size: 18px; }
 
-/* ---------- Dashboard (inicio) ---------- */
-.dashboard { margin-bottom: 20px; }
-.dash-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+/* ---------- Resumen (inicio) ---------- */
+.dash-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .dash-head h2 { margin: 0; font-size: 19px; }
-.dash-sub { color: var(--muted); font-size: 13px; }
 
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.resumen-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.resumen-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 64px; }
+@media (max-width: 980px) {
+  .resumen-layout { grid-template-columns: 1fr; }
+  .resumen-side { position: static; }
+}
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .metric {
-  background: var(--card); border: 1px solid var(--border); border-left: 5px solid var(--c);
-  border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow); padding: 16px 18px;
   display: flex; align-items: center; gap: 14px;
   animation: pop .4s ease both; animation-delay: calc(var(--i) * .07s);
 }
-.metric-ico { font-size: 30px; }
-.metric-body { display: flex; flex-direction: column; gap: 1px; }
+.metric:first-child { border-left: 5px solid var(--c); }
+.metric-ico {
+  font-size: 24px; width: 52px; height: 52px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: color-mix(in srgb, var(--c) 12%, #fff);
+}
+.metric-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .metric-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .metric-val { font-size: 23px; font-weight: 800; color: var(--c); line-height: 1.1; }
-.metric-delta { font-size: 12px; font-weight: 700; margin-top: 2px; width: fit-content; padding: 1px 7px; border-radius: 20px; }
+.metric-foot { display: flex; align-items: center; gap: 7px; margin-top: 3px; }
+.metric-prev { font-size: 11.5px; color: var(--muted); }
+.metric-delta { font-size: 12px; font-weight: 700; width: fit-content; padding: 1px 7px; border-radius: 20px; }
 .metric-delta.up { color: #b91c1c; background: #fee2e2; }
 .metric-delta.down { color: #15803d; background: #dcfce7; }
 .metric-delta.flat { color: var(--muted); background: var(--bg); }
 
-.alertas-title { font-size: 15px; margin: 0 0 10px; }
+.alertas-card { padding: 16px 18px; }
+.alertas-title { font-size: 15px; margin: 0 0 12px; }
 .alertas { display: flex; flex-direction: column; gap: 10px; }
+.alertas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 760px) { .alertas-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Tarjetas laterales ---------- */
+.side-card { padding: 16px 18px; margin-bottom: 0; }
+.side-card h3 { margin: 0 0 10px; font-size: 15px; }
+.side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.side-head h3 { margin: 0; }
+.side-lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
+.side-big { font-size: 28px; font-weight: 800; color: var(--ink); }
+.side-mid { font-size: 20px; font-weight: 800; color: var(--brand-dark); }
+.side-sep { border-top: 1px solid var(--border); margin: 10px 0; }
+
+/* Donut */
+.donut-wrap { display: flex; align-items: center; gap: 14px; }
+.donut { width: 110px; height: 110px; flex-shrink: 0; }
+.donut-leg { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.donut-leg-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.donut-leg-lbl { flex: 1; color: var(--ink); }
+.donut-leg-val { font-weight: 700; color: var(--muted); }
+
+/* Por persona */
+.pp-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--bg); }
+.pp-avatar {
+  width: 30px; height: 30px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pp-nombre { flex: 1; font-size: 14px; font-weight: 600; }
+.pp-monto { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pp-total { display: flex; justify-content: space-between; padding-top: 10px; font-size: 13.5px; font-weight: 800; color: var(--brand-dark); }
+
+/* Mini barras */
+.minibars { display: flex; align-items: flex-end; gap: 8px; height: 110px; padding-top: 6px; }
+.minibar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+.minibar { width: 100%; max-width: 26px; border-radius: 6px 6px 2px 2px; background: #bae6fd; transition: height .5s ease; }
+.minibar.cur { background: var(--brand); }
+.minibar-lbl { font-size: 10.5px; color: var(--muted); }
+
+/* Calculadora */
+.calc-card select, .calc-card input { width: 100%; margin-bottom: 8px; }
+.calc-lbl { font-size: 11.5px; color: var(--muted); font-weight: 700; display: block; margin-bottom: 3px; }
+.calc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.calc-nota { font-size: 11px; color: var(--muted); margin: 0 0 10px; }
+.calc-result { background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border: 1px solid #bae6fd; border-radius: 12px; padding: 12px 14px; margin-top: 4px; }
+.calc-kwh { font-size: 14px; font-weight: 700; color: var(--brand-dark); }
+.calc-soles { font-size: 21px; font-weight: 800; color: var(--ink); }
+.calc-det { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+
+/* Tarifas */
+.tarifa-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bg); }
+.tarifa-item:last-of-type { border-bottom: none; }
+.tarifa-ico { font-size: 18px; }
+.tarifa-item strong { display: block; font-size: 13px; }
+.tarifa-item span:not(.tarifa-ico) { font-size: 11.5px; color: var(--muted); }
+
+/* ---------- Tips detallados ---------- */
+.tips-seccion { margin-bottom: 26px; }
+.tips-sec-title { font-size: 17px; margin: 0 0 12px; padding-left: 10px; border-left: 4px solid var(--c); }
+.tipd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.tipd {
+  background: var(--card); border: 1px solid var(--border); border-top: 4px solid var(--c);
+  border-radius: 14px; box-shadow: var(--shadow); padding: 14px 16px;
+  animation: pop .4s ease both; animation-delay: calc(var(--i) * .06s);
+}
+.tipd-head { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+.tipd-ico { font-size: 26px; }
+.tipd-titulos strong { font-size: 14.5px; display: block; margin-bottom: 5px; }
+.tipd-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.tipd-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.tipd-badge.ahorro { background: #dcfce7; color: #15803d; }
+.tipd-badge.dif { background: var(--bg); color: var(--muted); }
+.tipd-pasos { margin: 0; padding-left: 20px; }
+.tipd-pasos li { font-size: 12.8px; color: #334155; margin-bottom: 5px; }
 .alerta {
   display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 13px;
   border: 1px solid var(--border); background: var(--card);

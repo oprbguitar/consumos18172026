@@ -108,6 +108,8 @@ function initTabs() {
 function activarTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+  if (tab === 'resumen') renderResumen();
+  if (tab === 'registro') renderRegistro();
   if (tab === 'recibos') renderRecibos();
   if (tab === 'historico') renderHistorico();
   if (tab === 'graficos') renderGraficos();
@@ -177,33 +179,123 @@ function generarAlertas(mes, prev) {
   return out;
 }
 
-function renderDashboardHTML() {
+// ---------- Componentes del Resumen ----------
+function donutChartSVG(items) {
+  // items: [{label, valor, color}] — anillo tipo dona con leyenda
+  const total = items.reduce((a, x) => a + x.valor, 0) || 1;
+  const R = 42, C = 2 * Math.PI * R;
+  let offset = 0;
+  const segs = items.map(x => {
+    const frac = x.valor / total;
+    const seg = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${x.color}" stroke-width="20"
+      stroke-dasharray="${(frac * C).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-offset * C).toFixed(2)}"
+      transform="rotate(-90 60 60)"><title>${x.label}: ${(frac * 100).toFixed(1)}%</title></circle>`;
+    offset += frac;
+    return seg;
+  }).join('');
+  const leyenda = items.map(x => `
+    <div class="donut-leg-row">
+      <span class="leg-dot" style="background:${x.color}"></span>
+      <span class="donut-leg-lbl">${x.label}</span>
+      <span class="donut-leg-val">${((x.valor / total) * 100).toFixed(1)}%</span>
+    </div>`).join('');
+  return `<div class="donut-wrap">
+    <svg viewBox="0 0 120 120" class="donut">${segs}</svg>
+    <div class="donut-leg">${leyenda}</div>
+  </div>`;
+}
+
+function miniBarChartHTML(mesSel) {
+  const meses = state.meses;
+  const totales = meses.map(m => desgloseMes(m, state.config).reduce((a, d) => a + d.total, 0));
+  const maxV = Math.max(1, ...totales);
+  return `<div class="minibars">` + meses.map((m, i) => `
+    <div class="minibar-col" title="${m.etiqueta}: ${S(totales[i])}">
+      <div class="minibar ${m.id === mesSel.id ? 'cur' : ''}" style="height:${Math.max(6, (totales[i] / maxV) * 100)}%"></div>
+      <span class="minibar-lbl">${m.etiqueta.split(' ')[0].slice(0, 3)}</span>
+    </div>`).join('') + `</div>`;
+}
+
+function calculadoraHTML() {
+  const opts = ELECTRODOMESTICOS.map(e =>
+    `<option value="${e.id}">${e.nombre} (${e.watts} W)</option>`).join('');
+  return `
+    <div class="card side-card calc-card">
+      <h3>⚡ Calculadora de consumo</h3>
+      <p class="calc-nota">Estilo calculadora de eficiencia energética del MINEM.</p>
+      <label class="calc-lbl">Electrodoméstico</label>
+      <select id="calc-aparato">${opts}</select>
+      <div class="calc-row">
+        <div><label class="calc-lbl">Cantidad</label><input type="number" id="calc-cant" min="1" value="1"></div>
+        <div><label class="calc-lbl">Horas al día</label><input type="number" id="calc-horas" min="0" step="0.1" value="5"></div>
+      </div>
+      <div class="calc-result" id="calc-result"></div>
+    </div>`;
+}
+
+function calcularConsumo() {
+  const ap = ELECTRODOMESTICOS.find(e => e.id === document.getElementById('calc-aparato').value);
+  if (!ap) return;
+  const cant = parseFloat(document.getElementById('calc-cant').value) || 1;
+  const horas = parseFloat(document.getElementById('calc-horas').value) || 0;
+  const kwhMes = (ap.watts * horas * 30 * cant) / 1000;
+  const costo = kwhMes * TARIFAS.luz.efectivoKwh;
+  document.getElementById('calc-result').innerHTML = `
+    <div class="calc-kwh">${kwhMes.toFixed(1)} kWh/mes</div>
+    <div class="calc-soles">≈ ${S(costo)} al mes</div>
+    <div class="calc-det">Tarifa ${TARIFAS.luz.proveedor} ≈ S/ ${TARIFAS.luz.efectivoKwh.toFixed(2)}/kWh (incl. IGV y alumbrado)</div>`;
+}
+
+function tarifasHTML() {
+  const t = TARIFAS;
+  const luzTramos = t.luz.tramos.map(x =>
+    x.hasta === Infinity ? `S/ ${x.precio.toFixed(2)} (+140 kWh)` : `S/ ${x.precio.toFixed(2)} (≤${x.hasta})`).join(' · ');
+  const aguaFmt = a => a.tramos.map(x =>
+    x.hasta === Infinity ? `S/ ${x.precio.toFixed(2)}` : `S/ ${x.precio.toFixed(2)} (≤${x.hasta} m³)`).slice(0, 2).join(' · ');
+  return `
+    <div class="card side-card tarifas-card">
+      <h3>💲 Tarifas de referencia</h3>
+      <div class="tarifa-item"><span class="tarifa-ico">⚡</span>
+        <div><strong>Luz — ${t.luz.proveedor}</strong><span>Ambas casas · por kWh: ${luzTramos}</span></div></div>
+      <div class="tarifa-item"><span class="tarifa-ico">💧</span>
+        <div><strong>Agua Lima — ${t.agua.lima.proveedor}</strong><span>${aguaFmt(t.agua.lima)} y más por tramo</span></div></div>
+      <div class="tarifa-item"><span class="tarifa-ico">💧</span>
+        <div><strong>Agua San Bartolo — ${t.agua.sb.proveedor}</strong><span>${aguaFmt(t.agua.sb)} y más por tramo</span></div></div>
+      <p class="calc-nota">Valores aproximados 2026. El recibo final agrega IGV y cargos fijos.</p>
+    </div>`;
+}
+
+// ============================================================
+//  PESTAÑA: RESUMEN (inicio)
+// ============================================================
+function renderResumen() {
+  const cont = document.getElementById('resumen-content');
   const mes = mesActual();
   const prev = mesPrevio(mes);
   const desg = desgloseMes(mes, state.config);
   const totalCasa = desg.reduce((a, d) => a + d.total, 0);
   const prevTotalCasa = prev ? desgloseMes(prev, state.config).reduce((a, d) => a + d.total, 0) : 0;
 
-  const metrica = (icono, label, cur, pv, color, i) => {
-    const pct = prev ? cambioPct(cur, pv) : null;
-    const cls = pct === null ? 'flat' : pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
-    const arrow = pct === null ? '' : pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
-    const delta = pct === null ? '<span class="metric-delta flat">nuevo</span>'
-      : `<span class="metric-delta ${cls}">${arrow} ${Math.abs(pct)}%</span>`;
-    return `<div class="metric" style="--c:${color};--i:${i}">
-      <div class="metric-ico">${icono}</div>
-      <div class="metric-body">
-        <span class="metric-label">${label}</span>
-        <span class="metric-val">${S(cur)}</span>
-        ${delta}
-      </div></div>`;
-  };
-
   const g = id => (mes.vars[id] && mes.vars[id].total) || 0;
   const gp = id => prev ? ((prev.vars[id] && prev.vars[id].total) || 0) : 0;
 
+  const metrica = (icono, label, cur, pv, color, i) => {
+    const pct = prev ? cambioPct(cur, pv) : null;
+    const cls = pct === null || pct === 0 ? 'flat' : pct > 0 ? 'up' : 'down';
+    const arrow = pct === null ? '' : pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+    const delta = pct === null ? '<span class="metric-delta flat">nuevo</span>'
+      : `<span class="metric-delta ${cls}">${arrow} ${Math.abs(pct)}%</span><span class="metric-prev">${S(pv)}</span>`;
+    return `<div class="metric" style="--c:${color};--i:${i}">
+      <div class="metric-ico" style="--c:${color}">${icono}</div>
+      <div class="metric-body">
+        <span class="metric-label">${label}</span>
+        <span class="metric-val">${S(cur)}</span>
+        <span class="metric-foot">${delta}</span>
+      </div></div>`;
+  };
+
   const metricas = [
-    metrica('🏠', 'Total de la casa', totalCasa, prevTotalCasa, '#0ea5e9', 0),
+    metrica('🧾', 'Total del mes', totalCasa, prevTotalCasa, '#0ea5e9', 0),
     metrica('💡', 'Luz (casa)', g('luz'), gp('luz'), '#f59e0b', 1),
     metrica('💧', 'Agua (casa)', g('agua'), gp('agua'), '#2563eb', 2),
     metrica('🔥', 'Gas Cálidda', g('gas'), gp('gas'), '#dc2626', 3),
@@ -214,21 +306,90 @@ function renderDashboardHTML() {
     <div class="alerta alerta-${a.tipo}" style="--i:${i}">
       <div class="alerta-ico">${a.icono}</div>
       <div class="alerta-txt"><strong>${a.titulo}</strong><span>${a.texto}</span></div>
-      ${a.tipo === 'up' ? '<button class="alerta-link" data-goto="tips">Ver tips →</button>' : ''}
+      <button class="alerta-link" data-goto="tips">Ver tips</button>
     </div>`).join('');
 
-  return `
-    <div class="dashboard">
-      <div class="dash-head">
-        <h2>📊 Resumen — ${mes.etiqueta}</h2>
-        ${prev ? `<span class="dash-sub">Comparado con ${prev.etiqueta}</span>` : ''}
+  const heroHTML = TIP_CARDS.map((c, i) => `
+    <button class="tip-hero" data-goto="${c.tab}" style="--grad:${c.grad};--i:${i}">
+      <span class="tip-hero-ico">${c.icono}</span>
+      <span class="tip-hero-txt"><strong>${c.titulo}</strong><span>${c.desc}</span></span>
+      <span class="tip-hero-arrow">→</span>
+    </button>`).join('');
+
+  // Distribución del total (con base en los recibos variables vs el resto)
+  const distribucion = donutChartSVG([
+    { label: 'Luz (casa)', valor: g('luz'), color: '#2563eb' },
+    { label: 'Agua (casa)', valor: g('agua'), color: '#38bdf8' },
+    { label: 'Gas Cálidda', valor: g('gas'), color: '#f59e0b' },
+    { label: 'Otros servicios', valor: Math.max(0, totalCasa - g('luz') - g('agua') - g('gas')), color: '#4ade80' },
+  ]);
+
+  const porPersona = desg.map(d => `
+    <div class="pp-row">
+      <span class="pp-avatar" style="background:${colorPersona(d.personaId)}">${nombrePersona(d.personaId).charAt(0)}</span>
+      <span class="pp-nombre">${nombrePersona(d.personaId)}</span>
+      <span class="pp-monto">${S(d.total)}</span>
+    </div>`).join('');
+
+  const pctTotal = prev ? cambioPct(totalCasa, prevTotalCasa) : null;
+  const badgeTotal = pctTotal === null ? '' :
+    `<span class="metric-delta ${pctTotal > 0 ? 'up' : pctTotal < 0 ? 'down' : 'flat'}">${pctTotal > 0 ? '▲' : pctTotal < 0 ? '▼' : '—'} ${Math.abs(pctTotal)}% vs ${prev.etiqueta.split(' ')[0]}</span>`;
+
+  cont.innerHTML = `
+    <div class="dash-head">
+      <h2>📊 Resumen — ${mes.etiqueta}</h2>
+      <select id="sel-mes-resumen"></select>
+    </div>
+    <div class="resumen-layout">
+      <div class="resumen-main">
+        <div class="metrics">${metricas}</div>
+        <div class="card alertas-card">
+          <h3 class="alertas-title">🔔 Sugerencias y alertas</h3>
+          <div class="alertas alertas-grid">${alertasHTML}</div>
+        </div>
+        <div class="hero-tips">${heroHTML}</div>
       </div>
-      <div class="metrics">${metricas}</div>
-      <div class="alertas-wrap">
-        <h3 class="alertas-title">💬 Sugerencias y alertas</h3>
-        <div class="alertas">${alertasHTML}</div>
-      </div>
+      <aside class="resumen-side">
+        <div class="card side-card">
+          <div class="side-head"><h3>Resumen del mes</h3>${badgeTotal}</div>
+          <span class="side-lbl">Total del mes</span>
+          <div class="side-big">${S(totalCasa)}</div>
+          <div class="side-sep"></div>
+          <span class="side-lbl">Promedio por persona</span>
+          <div class="side-mid">👥 ${S(totalCasa / PERSONAS.length)}</div>
+        </div>
+        <div class="card side-card">
+          <h3>Distribución del total</h3>
+          ${distribucion}
+        </div>
+        <div class="card side-card">
+          <h3>Por persona</h3>
+          ${porPersona}
+          <div class="pp-total"><span>Total ${PERSONAS.length} personas</span><span>${S(totalCasa)}</span></div>
+        </div>
+        <div class="card side-card">
+          <h3>Evolución mensual (total)</h3>
+          ${miniBarChartHTML(mes)}
+        </div>
+        ${calculadoraHTML()}
+        ${tarifasHTML()}
+      </aside>
     </div>`;
+
+  renderSelectorMes('sel-mes-resumen', renderResumen);
+  cont.querySelectorAll('.tip-hero, .alerta-link').forEach(b => {
+    b.addEventListener('click', () => activarTab(b.dataset.goto));
+  });
+  ['calc-aparato', 'calc-cant', 'calc-horas'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      if (id === 'calc-aparato') {
+        const ap = ELECTRODOMESTICOS.find(e => e.id === document.getElementById('calc-aparato').value);
+        if (ap) document.getElementById('calc-horas').value = ap.horasDef;
+      }
+      calcularConsumo();
+    });
+  });
+  calcularConsumo();
 }
 
 // ============================================================
@@ -255,23 +416,9 @@ function renderRegistro() {
   }).join('');
 
   cont.innerHTML = `
-    ${renderDashboardHTML()}
-
-    <div class="hero-tips">
-      ${TIP_CARDS.map((c, i) => `
-        <button class="tip-hero" data-goto="${c.tab}" style="--grad:${c.grad}">
-          <span class="tip-hero-ico">${c.icono}</span>
-          <span class="tip-hero-txt">
-            <strong>${c.titulo}</strong>
-            <span>${c.desc}</span>
-          </span>
-          <span class="tip-hero-arrow">→</span>
-        </button>`).join('')}
-    </div>
-
     <div class="card">
       <div class="card-head">
-        <h2>Registro del mes</h2>
+        <h2>📝 Registro del mes</h2>
         <div class="row-controls">
           <select id="sel-mes-registro"></select>
           <button class="btn btn-ghost" id="btn-nuevo-mes">+ Nuevo mes</button>
@@ -322,10 +469,6 @@ function renderRegistro() {
       const totalInp = cont.querySelector(`.inp-total[data-serv="${inp.dataset.serv}"]`);
       commitVar(inp.dataset.serv, parseFloat(totalInp.value) || 0, parseFloat(inp.value) || 0);
     });
-  });
-
-  cont.querySelectorAll('.tip-hero, .alerta-link').forEach(b => {
-    b.addEventListener('click', () => activarTab(b.dataset.goto));
   });
 
   document.getElementById('btn-nuevo-mes').onclick = nuevoMes;
@@ -621,17 +764,29 @@ function barChartSVG(items) {
 // ============================================================
 function renderTips() {
   const cont = document.getElementById('tab-tips');
-  const bloque = (titulo, icono, arr, clase) => `
-    <div class="card tip-card ${clase}">
-      <div class="card-head"><h2>${icono} ${titulo}</h2></div>
-      <ul class="tips-list">${arr.map(t => `<li>${t}</li>`).join('')}</ul>
-    </div>`;
-  cont.innerHTML = `
-    <div class="tips-grid">
-      ${bloque('Ahorro de luz', '💡', TIPS_LUZ, 'tip-luz')}
-      ${bloque('Ahorro de agua', '💧', TIPS_AGUA, 'tip-agua')}
-      ${bloque('Eficiencia y transparencia', '📊', TIPS_EFICIENCIA, 'tip-efi')}
-    </div>`;
+  const secciones = CATEGORIAS_TIPS.map(cat => {
+    const tips = TIPS_DETALLADOS.filter(t => t.cat === cat.id);
+    const tarjetas = tips.map((t, i) => `
+      <div class="tipd" style="--c:${cat.color};--i:${i}">
+        <div class="tipd-head">
+          <span class="tipd-ico">${t.icono}</span>
+          <div class="tipd-titulos">
+            <strong>${t.titulo}</strong>
+            <div class="tipd-badges">
+              <span class="tipd-badge ahorro">💰 ${t.ahorro}</span>
+              <span class="tipd-badge dif">${t.dificultad}</span>
+            </div>
+          </div>
+        </div>
+        <ol class="tipd-pasos">${t.pasos.map(p => `<li>${p}</li>`).join('')}</ol>
+      </div>`).join('');
+    return `
+      <section class="tips-seccion">
+        <h2 class="tips-sec-title" style="--c:${cat.color}">${cat.icono} ${cat.nombre}</h2>
+        <div class="tipd-grid">${tarjetas}</div>
+      </section>`;
+  }).join('');
+  cont.innerHTML = secciones;
 }
 
 // ============================================================
@@ -759,7 +914,7 @@ function init() {
     state.mesSeleccionado = state.meses[state.meses.length - 1].id;
   }
   initTabs();
-  renderRegistro();
+  renderResumen();
   renderTips();
   document.getElementById('btn-reset').onclick = resetDatos;
   document.getElementById('btn-publicar').onclick = publicarCifrado;
