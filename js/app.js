@@ -43,6 +43,12 @@ function colorPersona(id) {
   return p ? p.color : '#666';
 }
 const S = n => 'S/ ' + Math.round(n).toLocaleString('es-PE');
+const escaparHTML = valor => String(valor ?? '')
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
 
 // ---------- Motor de cálculo ----------
 // Devuelve el monto que le corresponde a 'personaId' por un servicio en un mes.
@@ -85,6 +91,22 @@ function desglosePersona(personaId, mes, config) {
     lineas.push({
       id: serv.id, concepto: serv.nombre, icono: serv.icono, grupo: serv.grupo,
       monto, esCredito: monto < 0,
+    });
+    total += monto;
+  }
+  // Los servicios adicionales son cargos del mes repartidos entre todos.
+  // La cantidad permite registrar 1, 2 o 3 unidades del mismo servicio.
+  for (const adicional of (mes.adicionales || [])) {
+    const subtotal = (Number(adicional.monto) || 0) * (Number(adicional.cantidad) || 1);
+    if (subtotal <= 0) continue;
+    const monto = subtotal / PERSONAS.length;
+    lineas.push({
+      id: adicional.id,
+      concepto: String(adicional.concepto || '').trim() || 'Servicio adicional',
+      icono: '➕',
+      grupo: 'Servicios adicionales',
+      monto,
+      esCredito: false,
     });
     total += monto;
   }
@@ -423,6 +445,23 @@ function renderRegistro() {
       </tr>`;
   }).join('');
 
+  const filasAdicionales = (mes.adicionales || []).map(adicional => {
+    const monto = Number(adicional.monto) || 0;
+    const cantidad = Math.min(3, Math.max(1, Number(adicional.cantidad) || 1));
+    return `
+      <tr data-adicional="${adicional.id}">
+        <td data-label="Concepto"><input type="text" class="inp-adicional-concepto" value="${escaparHTML(adicional.concepto || '')}" placeholder="Ej. mantenimiento" aria-label="Concepto del servicio adicional"></td>
+        <td data-label="Monto unitario"><input type="number" min="0" step="0.01" class="inp-adicional-monto" value="${monto || ''}" placeholder="Monto" aria-label="Monto unitario del servicio adicional"></td>
+        <td data-label="Cantidad">
+          <select class="inp-adicional-cantidad" aria-label="Cantidad del servicio adicional">
+            ${[1, 2, 3].map(n => `<option value="${n}" ${cantidad === n ? 'selected' : ''}>× ${n}</option>`).join('')}
+          </select>
+        </td>
+        <td class="adicional-subtotal" data-label="Subtotal">${S(monto * cantidad)}</td>
+        <td><button type="button" class="btn-icon btn-eliminar-adicional" title="Eliminar servicio adicional" aria-label="Eliminar servicio adicional">×</button></td>
+      </tr>`;
+  }).join('');
+
   cont.innerHTML = `
     <div class="card">
       <div class="card-head">
@@ -438,6 +477,20 @@ function renderRegistro() {
         <table class="tabla-registro">
           <thead><tr><th>Servicio variable</th><th>Total recibo (S/)</th><th>Reparto</th><th>Por persona (S/)</th></tr></thead>
           <tbody>${filasVar}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Servicios adicionales</h2>
+        <button type="button" class="btn btn-primary" id="btn-agregar-adicional">+ Agregar servicio</button>
+      </div>
+      <p class="muted">Registra un monto unitario y selecciona si corresponde multiplicarlo por 1, 2 o 3. El subtotal se reparte entre todos y se suma al total del mes.</p>
+      <div class="tabla-wrap">
+        <table class="tabla-registro tabla-adicionales">
+          <thead><tr><th>Concepto</th><th>Monto unitario (S/)</th><th>Cantidad</th><th>Subtotal</th><th></th></tr></thead>
+          <tbody id="adicionales-body">${filasAdicionales || '<tr class="adicionales-vacio"><td colspan="5">Aún no hay servicios adicionales este mes.</td></tr>'}</tbody>
         </table>
       </div>
     </div>
@@ -479,8 +532,51 @@ function renderRegistro() {
     });
   });
 
+  cont.querySelectorAll('tr[data-adicional]').forEach(fila => enlazarFilaAdicional(fila));
+  document.getElementById('btn-agregar-adicional').onclick = agregarAdicional;
+
   document.getElementById('btn-nuevo-mes').onclick = nuevoMes;
   document.getElementById('btn-borrar-mes').onclick = borrarMes;
+}
+
+function crearIdAdicional() {
+  return globalThis.crypto?.randomUUID?.() || `adicional-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function agregarAdicional() {
+  const mes = mesActual();
+  mes.adicionales ||= [];
+  mes.adicionales.push({ id: crearIdAdicional(), concepto: '', monto: 0, cantidad: 1 });
+  guardarEstado();
+  renderRegistro();
+  document.querySelector('tr[data-adicional]:last-child .inp-adicional-concepto')?.focus();
+}
+
+function enlazarFilaAdicional(fila) {
+  const id = fila.dataset.adicional;
+  const concepto = fila.querySelector('.inp-adicional-concepto');
+  const monto = fila.querySelector('.inp-adicional-monto');
+  const cantidad = fila.querySelector('.inp-adicional-cantidad');
+  const subtotal = fila.querySelector('.adicional-subtotal');
+  const guardar = () => {
+    const adicional = (mesActual().adicionales || []).find(item => item.id === id);
+    if (!adicional) return;
+    adicional.concepto = concepto.value;
+    adicional.monto = Math.max(0, parseFloat(monto.value) || 0);
+    adicional.cantidad = Math.min(3, Math.max(1, parseInt(cantidad.value, 10) || 1));
+    subtotal.textContent = S(adicional.monto * adicional.cantidad);
+    guardarEstado();
+    renderPreviewTotales();
+  };
+  concepto.addEventListener('input', guardar);
+  monto.addEventListener('input', guardar);
+  cantidad.addEventListener('change', guardar);
+  fila.querySelector('.btn-eliminar-adicional').onclick = () => {
+    const mes = mesActual();
+    mes.adicionales = (mes.adicionales || []).filter(item => item.id !== id);
+    guardarEstado();
+    renderRegistro();
+  };
 }
 
 function commitVar(servId, total, share) {
@@ -541,7 +637,7 @@ function nuevoMes() {
   if (state.meses.some(m => m.id === id)) { alert('Ese mes ya existe.'); return; }
   const vars = {};
   SERVICIOS_VARIABLES.forEach(s => { vars[s.id] = { total: 0, share: 0 }; });
-  state.meses.push({ id, etiqueta: `${nombresMes[mes]} ${anio}`, anio, mes, vars });
+  state.meses.push({ id, etiqueta: `${nombresMes[mes]} ${anio}`, anio, mes, vars, adicionales: [] });
   state.mesSeleccionado = id;
   guardarEstado();
   renderRegistro();
@@ -600,7 +696,7 @@ function reciboHTML(d, mes) {
     <div class="recibo-grupo">${grupo}</div>
     ${lineas.map(l => `
       <div class="recibo-linea ${l.esCredito ? 'credito' : ''}">
-        <span>${l.icono} ${l.concepto}${l.esCredito ? ' <em>(paga suscripción y cobra al resto)</em>' : ''}</span>
+        <span>${l.icono} ${escaparHTML(l.concepto)}${l.esCredito ? ' <em>(paga suscripción y cobra al resto)</em>' : ''}</span>
         <span class="monto">${S(l.monto)}</span>
       </div>`).join('')}
   `).join('');

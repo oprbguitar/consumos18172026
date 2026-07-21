@@ -108,6 +108,16 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .tabla-registro .serv-nombre { font-weight: 600; white-space: nowrap; }
 .reparto-hint { color: var(--muted); font-size: 12.5px; }
 .tabla-registro input { width: 130px; }
+.tabla-adicionales .inp-adicional-concepto { width: min(240px, 100%); }
+.tabla-adicionales .inp-adicional-cantidad { min-width: 72px; }
+.tabla-adicionales .adicional-subtotal { font-weight: 700; white-space: nowrap; }
+.tabla-adicionales .adicionales-vacio td { color: var(--muted); text-align: center; padding: 22px 10px; }
+.btn-icon {
+  width: 32px; height: 32px; border: 1px solid #fecaca; border-radius: 8px;
+  background: #fef2f2; color: var(--danger); font: inherit; font-size: 20px;
+  line-height: 1; cursor: pointer;
+}
+.btn-icon:hover { background: #fee2e2; }
 .tabla-historico td { text-align: right; }
 .tabla-historico td.mes-col { text-align: left; font-weight: 600; white-space: nowrap; }
 .tabla-historico td.total-col { font-weight: 700; }
@@ -431,6 +441,23 @@ body.locked .footer { display: none !important; }
 
   /* Registro */
   .tabla-registro input { width: 96px; }
+  .tabla-adicionales { display: block; width: 100%; }
+  .tabla-adicionales thead { display: none; }
+  .tabla-adicionales tbody, .tabla-adicionales tr[data-adicional] { display: block; }
+  .tabla-adicionales tr[data-adicional] {
+    display: grid; grid-template-columns: minmax(0, 1fr) 76px 82px 34px;
+    gap: 10px; align-items: end; padding: 12px 0;
+  }
+  .tabla-adicionales tr[data-adicional] td { padding: 0; border: 0; min-width: 0; }
+  .tabla-adicionales tr[data-adicional] td:first-child { grid-column: 1 / -1; }
+  .tabla-adicionales tr[data-adicional] td[data-label]::before {
+    content: attr(data-label); display: block; margin-bottom: 4px;
+    color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase;
+  }
+  .tabla-adicionales .inp-adicional-concepto,
+  .tabla-adicionales .inp-adicional-monto,
+  .tabla-adicionales .inp-adicional-cantidad { width: 100%; min-width: 0; }
+  .tabla-adicionales .adicionales-vacio { display: table-row; }
   .row-controls { width: 100%; }
   .row-controls select { flex: 1; min-width: 0; }
   .grid-fijos { grid-template-columns: 1fr 1fr; gap: 10px; }
